@@ -1,19 +1,18 @@
 const jwt = require("jsonwebtoken");
 
+const EXPIRES_IN = 300; // expires after 5 minutes (5 * 60 = 300s)
+
 const generateToken = username => {
-  // expires after 5 minutes (5 * 60 = 300s)
   return jwt.sign({ username }, process.env.TOKEN_SECRET, {
     algorithm: "HS512", // not all algorithms are supported
-    expiresIn: 300,
+    expiresIn: EXPIRES_IN,
   });
 };
 
 // Middleware to verify token validity
 const validateToken = (req, res, next) => {
-  // Gather the jwt access token from the request header
-  // authorization: Bearer JWT_ACCESS_TOKEN
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  // Gather the jwt access token from the request cookie
+  const token = req.cookies["token"];
 
   if (!token) {
     return res.status(401).json("Token required");
@@ -28,4 +27,4 @@ const validateToken = (req, res, next) => {
   });
 };
 
-module.exports = { generateToken, validateToken };
+module.exports = { generateToken, validateToken, EXPIRES_IN };

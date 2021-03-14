@@ -8,7 +8,6 @@ $(document).ready(_ => {
   const users = $("#users");
   const textarea = $("#textarea");
 
-  let token = null;
   let intervalId = 0;
 
   const append = data => {
@@ -26,7 +25,6 @@ $(document).ready(_ => {
   };
 
   const clearAll = data => {
-    token = null;
     clearInterval(intervalId);
     toggleButtons(false);
     append(data);
@@ -35,7 +33,6 @@ $(document).ready(_ => {
   toggleButtons(false);
 
   login.click(_ => {
-    token = null;
     clearInterval(intervalId);
     inactiveButtons();
 
@@ -43,10 +40,10 @@ $(document).ready(_ => {
       method: "POST",
       url: `${BACKEND_URL}/login`,
       contentType: "application/json",
+      xhrFields: { withCredentials: true }, // required to set the cookie
       data: JSON.stringify({ username: "elie29", password: "123456" }),
     })
       .done(next => {
-        token = next.token;
         toggleButtons(true);
         append(`${next.username} has just logged in`);
         intervalId = setInterval(refreshToken, REFRESH_TIME);
@@ -58,23 +55,16 @@ $(document).ready(_ => {
 
   // refresh needs a valid token
   const refreshToken = _ => {
-    if (!token) {
-      return;
-    }
-
     inactiveButtons();
 
     $.ajax({
       method: "POST",
       url: `${BACKEND_URL}/refresh`,
       contentType: "application/json",
-      headers: {
-        Authorization: `Basic ${token}`,
-      },
+      xhrFields: { withCredentials: true }, // required to send and set the cookie
       data: JSON.stringify({ username: "elie29" }),
     })
       .done(next => {
-        token = next.token;
         append(`${next.username}, token refreshed`);
         toggleButtons(true);
       })
@@ -89,9 +79,7 @@ $(document).ready(_ => {
     $.ajax({
       method: "GET",
       url: `${BACKEND_URL}/api/users`,
-      headers: {
-        Authorization: `Basic ${token}`,
-      },
+      xhrFields: { withCredentials: true }, // required to send the cookie
     })
       .done(next => {
         append(JSON.stringify(next));
