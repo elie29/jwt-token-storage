@@ -56,7 +56,7 @@ $(document).ready(_ => {
 
   logout.click(_ => clearAll("User logged out"));
 
-  // refresh need a valid token
+  // refresh needs a valid token
   const refreshToken = _ => {
     if (!token) {
       return;
