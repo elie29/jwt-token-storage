@@ -1,5 +1,5 @@
 const BACKEND_URL = "http://localhost:3000";
-const REFRESH_TIME = 4 * 60 * 1000; // refresh token each 4 minutes
+const REFRESH_TIME_MS = 4 * 60 * 1000; // refresh token each 4 minutes
 
 // Closure until document is ready
 $(document).ready(_ => {
@@ -7,6 +7,9 @@ $(document).ready(_ => {
   const logout = $("#logout");
   const users = $("#users");
   const textarea = $("#textarea");
+
+  // protected copy of fetch
+  const fetch = window.fetch;
 
   let intervalId = 0;
 
@@ -26,67 +29,81 @@ $(document).ready(_ => {
 
   const clearAll = data => {
     clearInterval(intervalId);
+    // Ask to clear token only
+    navigator.serviceWorker.controller.postMessage("");
     toggleButtons(false);
     append(data);
   };
 
-  toggleButtons(false);
+  const handleError = resp => {
+    if (resp.ok) {
+      return resp.json();
+    }
+    return resp.json().then(err => {
+      throw Error(`${resp.status} ${err.message || err}`);
+    });
+  };
 
   login.click(_ => {
     clearInterval(intervalId);
     inactiveButtons();
 
-    $.ajax({
+    fetch(`${BACKEND_URL}/login`, {
       method: "POST",
-      url: `${BACKEND_URL}/login`,
-      contentType: "application/json",
-      xhrFields: { withCredentials: true }, // required to set the cookie
-      data: JSON.stringify({ username: "elie29", password: "123456" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "elie29", password: "123456" }),
     })
-      .done(next => {
+      .then(handleError)
+      .then(next => {
         toggleButtons(true);
         append(`${next.username} has just logged in`);
-        intervalId = setInterval(refreshToken, REFRESH_TIME);
+        intervalId = setInterval(refreshToken, REFRESH_TIME_MS);
       })
-      .fail(err => clearAll(`${err.statusText}, ${err.responseJSON}`));
+      .catch(message => clearAll(`${message} on login`));
   });
 
   logout.click(_ => clearAll("User logged out"));
 
-  // refresh needs a valid token
   const refreshToken = _ => {
     inactiveButtons();
 
-    $.ajax({
+    fetch(`${BACKEND_URL}/api/refresh`, {
       method: "POST",
-      url: `${BACKEND_URL}/refresh`,
-      contentType: "application/json",
-      xhrFields: { withCredentials: true }, // required to send and set the cookie
-      data: JSON.stringify({ username: "elie29" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "elie29" }),
     })
-      .done(next => {
+      .then(handleError)
+      .then(next => {
         append(`${next.username}, token refreshed`);
         toggleButtons(true);
       })
-      .fail(err =>
-        clearAll(`${err.statusText}, ${err.responseJSON} on refresh`)
-      );
+      .catch(message => clearAll(`${message} on refresh`));
   };
 
   users.click(_ => {
     inactiveButtons();
 
-    $.ajax({
-      method: "GET",
-      url: `${BACKEND_URL}/api/users`,
-      xhrFields: { withCredentials: true }, // required to send the cookie
-    })
-      .done(next => {
+    fetch(`${BACKEND_URL}/api/users`)
+      .then(handleError)
+      .then(next => {
         append(JSON.stringify(next));
         toggleButtons(true);
       })
-      .fail(err =>
-        clearAll(`${err.statusText}, ${err.responseJSON} on users call`)
-      );
+      .catch(message => clearAll(`${message} on users call`));
   });
+
+  // Register service worker and check if the token is ready
+  navigator.serviceWorker
+    .register("/service-worker.js", {
+      scope: "/",
+    })
+    .then(_ => navigator.serviceWorker.ready)
+    .then(_ => append("ServiceWorker registration successful!"))
+    .then(_ => refreshToken())
+    .then(_ => (intervalId = setInterval(refreshToken, REFRESH_TIME_MS)))
+    .catch(err => append(`ServiceWorker registration failed: ${err}`));
 });

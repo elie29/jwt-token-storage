@@ -11,8 +11,9 @@ const generateToken = username => {
 
 // Middleware to verify token validity
 const validateToken = (req, res, next) => {
-  // Gather the jwt access token from the request cookie
-  const token = req.cookies["token"];
+  // Gather the jwt access token from the request header
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
     return res.status(401).json("Token required");

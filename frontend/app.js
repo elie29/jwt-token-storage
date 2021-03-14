@@ -17,5 +17,11 @@ app.get("/main.js", (_, res) => {
   res.end(fs.readFileSync(`${__dirname}/main.js`, "utf8"));
 });
 
+app.get("/service-worker.js", (_, res) => {
+  res.type(".js");
+  res.writeHead(200);
+  res.end(fs.readFileSync(`${__dirname}/service-worker.js`, "utf8"));
+});
+
 // Launch the http server
 app.listen(PORT, () => console.log(`App listening on port ${PORT}!`));
