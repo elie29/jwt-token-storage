@@ -17,12 +17,13 @@ app.use(express.json());
 
 // Endpoints
 app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+  const { username, password } = req.body;
+
   if (username === "elie29" && password === "123456") {
     const token = generateToken(username);
-    return res.status(200).json({ username, token });
+    return res.status(200).send({ username, token });
   }
+
   return res.status(401).json("Invalid credentials");
 });
 
@@ -30,7 +31,8 @@ app.post("/login", (req, res) => {
 app.post("/api/refresh", validateToken, (req, res) => {
   const username = req.body.username;
   const token = generateToken(username);
-  return res.status(200).json({ username, token });
+
+  return res.status(200).send({ username, token });
 });
 
 app.get("/api/users", validateToken, (_, res) => {
